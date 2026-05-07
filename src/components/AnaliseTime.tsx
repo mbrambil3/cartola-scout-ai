@@ -418,7 +418,12 @@ export function AnaliseTime() {
                 </tr>
               </thead>
               <tbody>
-                {times.map(t => {
+                {[...times].sort((a, b) => {
+                  const ra = a.rodada_calculada ?? Number.POSITIVE_INFINITY;
+                  const rb = b.rodada_calculada ?? Number.POSITIVE_INFINITY;
+                  if (ra !== rb) return ra - rb;
+                  return new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime();
+                }).map(t => {
                   const op = t.oculto ? "opacity-40" : "";
                   const pts = t.pontuacao_final;
                   return (
