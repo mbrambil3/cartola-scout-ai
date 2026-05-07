@@ -42,9 +42,10 @@ export function useUserSession() {
   }, []);
 
   const login = useCallback((id: string) => {
-    if (!validateId(id)) return false;
-    localStorage.setItem(USER_KEY, id);
-    currentUserId = id;
+    const normalized = id.toLowerCase();
+    if (!validateId(normalized)) return false;
+    localStorage.setItem(USER_KEY, normalized);
+    currentUserId = normalized;
     notify();
     return true;
   }, []);
