@@ -5,6 +5,7 @@ import { Eye, EyeOff, Trash2, Save, FolderOpen, Crown, X, Plus, Star } from "luc
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ESQUEMAS, POSICOES, POS_COLOR, type Atleta, type Clube, type TimeEntry } from "@/lib/cartola-types";
 import { getAtletas, getClubes, getMercadoStatus, analiseTime, getPosicoesStats } from "@/lib/cartola.functions";
 import { useUserSession, useTimesStorage } from "@/lib/userStorage";
@@ -487,12 +488,20 @@ export function AnaliseTime() {
         )}
       </section>
 
-      {/* Painel Analítico */}
-      <SectionHeader title="PAINEL ANALÍTICO" subtitle="Insights do campeonato e do seu histórico" />
-      <AnaliticosPanel times={times} posStats={posStats} />
-
-      <SectionHeader title="PAINEL DOS SEUS JOGADORES" subtitle="Mesma análise, mas considerando apenas jogadores escalados nos seus times salvos" />
-      <MeusJogadoresPanel times={times} atletasMap={atletasMap} />
+      {/* Painel Analítico (Geral + Seus Jogadores) */}
+      <SectionHeader title="PAINEL ANALÍTICO" subtitle="Alterne entre o panorama geral do campeonato e os seus jogadores" />
+      <Tabs defaultValue="geral" className="w-full">
+        <TabsList className="mb-3">
+          <TabsTrigger value="geral">Geral do campeonato</TabsTrigger>
+          <TabsTrigger value="meus">Meus jogadores</TabsTrigger>
+        </TabsList>
+        <TabsContent value="geral">
+          <AnaliticosPanel times={times} posStats={posStats} />
+        </TabsContent>
+        <TabsContent value="meus">
+          <MeusJogadoresPanel times={times} atletasMap={atletasMap} />
+        </TabsContent>
+      </Tabs>
 
       <SaveTimeDialog open={saveOpen} onOpenChange={setSaveOpen} onSave={salvarTime} />
       <LoadTimesDialog open={loadOpen} onOpenChange={setLoadOpen} times={times} onLoad={carregarTime} onDelete={(id) => removeTime(id)} />
