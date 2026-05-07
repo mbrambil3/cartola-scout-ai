@@ -187,7 +187,7 @@ export function MeusJogadoresPanel({ times, atletasMap }: { times: TimeEntry[]; 
                 <li key={j.atleta_id} className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2">
                     <span className="font-display font-bold" style={{ color: POS_COLOR[j.posicao_id] }}>{POSICOES[j.posicao_id]}</span>
-                    <span className="text-muted-foreground">#{j.atleta_id}</span>
+                    <span className="truncate max-w-[120px]">{atletasMap[j.atleta_id]?.apelido ?? `#${j.atleta_id}`}</span>
                     <span className="text-[10px] text-muted-foreground">({j.jogos}x)</span>
                   </span>
                   <span className="font-mono-data text-primary">{j.total.toFixed(1)} <span className="text-muted-foreground">({j.media.toFixed(1)} méd)</span></span>
@@ -206,7 +206,7 @@ export function MeusJogadoresPanel({ times, atletasMap }: { times: TimeEntry[]; 
                 <li key={j.atleta_id} className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2">
                     <span className="font-display font-bold" style={{ color: POS_COLOR[j.posicao_id] }}>{POSICOES[j.posicao_id]}</span>
-                    <span className="text-muted-foreground">#{j.atleta_id}</span>
+                    <span className="truncate max-w-[120px]">{atletasMap[j.atleta_id]?.apelido ?? `#${j.atleta_id}`}</span>
                     <span className="text-[10px] text-muted-foreground">({j.jogos}x)</span>
                   </span>
                   <span className="font-mono-data text-destructive">{j.total.toFixed(1)} <span className="text-muted-foreground">({j.media.toFixed(1)} méd)</span></span>
