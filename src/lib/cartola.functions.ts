@@ -327,7 +327,7 @@ export const getPosicoesStats = createServerFn({ method: "GET" })
       };
     }
 
-    return { por_posicao: out, por_rodada: porRodada, intervalo: { inicio, fim: ultima } };
+    return { por_posicao: out, por_rodada: porRodada, intervalo: { inicio, fim: ultima }, temporada };
   });
 
 // ============ PONTUADOS EM LOTE (para painel de jogadores dos times salvos) ============
