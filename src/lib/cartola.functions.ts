@@ -328,3 +328,31 @@ export const getPosicoesStats = createServerFn({ method: "GET" })
 
     return { por_posicao: out, por_rodada: porRodada, intervalo: { inicio, fim: ultima } };
   });
+
+// ============ PONTUADOS EM LOTE (para painel de jogadores dos times salvos) ============
+
+export const getPontuadosBatch = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ rodadas: z.array(z.number().int().min(1)).max(50) }))
+  .handler(async ({ data }) => {
+    const unique = Array.from(new Set(data.rodadas));
+    const results = await Promise.all(
+      unique.map(r =>
+        fetchCartola(`/atletas/pontuados/${r}`)
+          .then(d => ({ r, atletas: d.atletas || {} }))
+          .catch(() => ({ r, atletas: {} as Record<string, any> }))
+      )
+    );
+    const out: Record<number, Record<number, { pontuacao: number; entrou: boolean; posicao_id: number }>> = {};
+    for (const { r, atletas } of results) {
+      const m: Record<number, { pontuacao: number; entrou: boolean; posicao_id: number }> = {};
+      for (const [aid, a] of Object.entries<any>(atletas)) {
+        m[Number(aid)] = {
+          pontuacao: typeof a.pontuacao === "number" ? a.pontuacao : 0,
+          entrou: !!a.entrou_em_campo,
+          posicao_id: a.posicao_id ?? 0,
+        };
+      }
+      out[r] = m;
+    }
+    return out;
+  });
