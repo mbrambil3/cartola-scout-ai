@@ -146,7 +146,8 @@ export function AnaliseTime() {
   };
 
   const calcular = async () => {
-    if (!podeCalcular) return;
+    if (totalSelecionados !== 12) return;
+    if (!capitaoKey) { toast.error("Escolha um capitão antes de calcular"); return; }
     setCalculando(true);
     try {
       const jogadores = slots.map(s => ({ atleta_id: selecao[s.key]!, capitao: capitaoKey === s.key }));
