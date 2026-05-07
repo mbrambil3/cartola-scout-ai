@@ -90,7 +90,7 @@ export function AnaliseTime() {
   }, [atletas]);
 
   const totalSelecionados = useMemo(() => slots.filter(s => selecao[s.key]).length, [slots, selecao]);
-  const podeCalcular = totalSelecionados === 12;
+  const podeCalcular = totalSelecionados === 12 && capitaoKey !== null;
 
   // Ao mudar esquema, preserva por posição
   useEffect(() => {
