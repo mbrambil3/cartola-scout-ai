@@ -5,6 +5,7 @@ import { Eye, EyeOff, Trash2, Save, FolderOpen, Crown, X, Plus, Star } from "luc
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ESQUEMAS, POSICOES, POS_COLOR, type Atleta, type Clube, type TimeEntry } from "@/lib/cartola-types";
 import { getAtletas, getClubes, getMercadoStatus, analiseTime, getPosicoesStats } from "@/lib/cartola.functions";
 import { useUserSession, useTimesStorage } from "@/lib/userStorage";
