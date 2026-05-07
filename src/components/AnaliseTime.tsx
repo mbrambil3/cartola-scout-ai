@@ -13,6 +13,7 @@ import { PlayerSearchDialog } from "@/components/PlayerSearchDialog";
 import { SaveTimeDialog } from "@/components/SaveTimeDialog";
 import { LoadTimesDialog } from "@/components/LoadTimesDialog";
 import { AnaliticosPanel } from "@/components/AnaliticosPanel";
+import { MeusJogadoresPanel } from "@/components/MeusJogadoresPanel";
 
 type SlotKey = string; // "{posicao_id}-{idx}"
 type Selecao = Record<SlotKey, number | undefined>; // atleta_id por slot
@@ -489,6 +490,9 @@ export function AnaliseTime() {
       {/* Painel Analítico */}
       <SectionHeader title="PAINEL ANALÍTICO" subtitle="Insights do campeonato e do seu histórico" />
       <AnaliticosPanel times={times} posStats={posStats} />
+
+      <SectionHeader title="PAINEL DOS SEUS JOGADORES" subtitle="Mesma análise, mas considerando apenas jogadores escalados nos seus times salvos" />
+      <MeusJogadoresPanel times={times} atletasMap={atletasMap} />
 
       <SaveTimeDialog open={saveOpen} onOpenChange={setSaveOpen} onSave={salvarTime} />
       <LoadTimesDialog open={loadOpen} onOpenChange={setLoadOpen} times={times} onLoad={carregarTime} onDelete={(id) => removeTime(id)} />
