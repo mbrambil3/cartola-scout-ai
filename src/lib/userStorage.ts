@@ -9,29 +9,53 @@ const TIMES_KEY = "scoutfc_times_v1";
 const ID_RE = /^[a-zA-Z0-9_-]{3,32}$/;
 export const validateId = (id: string) => ID_RE.test(id);
 
+// Global subscriber-based store so all components share the same userId
+const listeners = new Set<() => void>();
+let currentUserId: string | null = null;
+let bootstrapped = false;
+
+function bootstrap() {
+  if (bootstrapped || typeof window === "undefined") return;
+  currentUserId = localStorage.getItem(USER_KEY);
+  bootstrapped = true;
+  // Cross-tab sync
+  window.addEventListener("storage", (e) => {
+    if (e.key === USER_KEY) {
+      currentUserId = e.newValue;
+      listeners.forEach(l => l());
+    }
+  });
+}
+
+function notify() { listeners.forEach(l => l()); }
+
 export function useUserSession() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [, force] = useState(0);
+  const [loaded, setLoaded] = useState(bootstrapped);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    setUserId(localStorage.getItem(USER_KEY));
+    bootstrap();
     setLoaded(true);
+    const fn = () => force(x => x + 1);
+    listeners.add(fn);
+    return () => { listeners.delete(fn); };
   }, []);
 
   const login = useCallback((id: string) => {
     if (!validateId(id)) return false;
     localStorage.setItem(USER_KEY, id);
-    setUserId(id);
+    currentUserId = id;
+    notify();
     return true;
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(USER_KEY);
-    setUserId(null);
+    currentUserId = null;
+    notify();
   }, []);
 
-  return { userId, loaded, login, logout };
+  return { userId: currentUserId, loaded, login, logout };
 }
 
 export function useTimesStorage(userId: string | null) {
