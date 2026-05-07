@@ -270,9 +270,10 @@ export const getPosicoesStats = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const status = await fetchCartola("/mercado/status");
     const rodadaAtual: number = status.rodada_atual ?? 1;
+    const temporada: number = status.temporada ?? new Date().getFullYear();
     const mercadoAberto = status.status_mercado === 1;
     const ultima = mercadoAberto ? rodadaAtual - 1 : rodadaAtual;
-    if (ultima < 1) return { por_posicao: {}, por_rodada: {}, intervalo: { inicio: null, fim: null } };
+    if (ultima < 1) return { por_posicao: {}, por_rodada: {}, intervalo: { inicio: null, fim: null }, temporada };
     const inicio = data.rodadas_back > 0 ? Math.max(1, ultima - data.rodadas_back + 1) : 1;
 
     const rounds = await Promise.all(
@@ -326,7 +327,7 @@ export const getPosicoesStats = createServerFn({ method: "GET" })
       };
     }
 
-    return { por_posicao: out, por_rodada: porRodada, intervalo: { inicio, fim: ultima } };
+    return { por_posicao: out, por_rodada: porRodada, intervalo: { inicio, fim: ultima }, temporada };
   });
 
 // ============ PONTUADOS EM LOTE (para painel de jogadores dos times salvos) ============

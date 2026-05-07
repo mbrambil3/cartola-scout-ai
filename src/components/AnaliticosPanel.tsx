@@ -28,7 +28,7 @@ export function AnaliticosPanel({ times: _times, posStats }: { times: TimeEntry[
             <h3 className="font-display text-xl tracking-wide">PONTUAÇÃO MÉDIA POR POSIÇÃO</h3>
             {posStats?.intervalo?.inicio && (
               <p className="text-xs text-muted-foreground">
-                {posStats.intervalo.fim - posStats.intervalo.inicio + 1} rodada(s) analisadas · R{posStats.intervalo.inicio} a R{posStats.intervalo.fim}
+                Brasileirão {posStats?.temporada ?? ""} · {posStats.intervalo.fim - posStats.intervalo.inicio + 1} rodada(s) · R{posStats.intervalo.inicio} a R{posStats.intervalo.fim}
               </p>
             )}
           </div>
