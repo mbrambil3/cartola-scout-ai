@@ -27,8 +27,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               ⚽
             </div>
             <div>
-              <div className="font-display font-bold text-lg leading-none tracking-wider">SCOUT FC</div>
-              <div className="text-[10px] text-muted-foreground tracking-[0.2em] font-display">ANÁLISE TIME DA IA</div>
+              <div className="font-display font-bold text-lg leading-none tracking-wider">PRANCHETA FC</div>
+              <div className="text-[10px] text-muted-foreground tracking-[0.2em] font-display">PÓS-RODADA</div>
             </div>
           </Link>
 
