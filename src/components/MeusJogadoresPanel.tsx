@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { POSICOES, POS_COLOR, type TimeEntry } from "@/lib/cartola-types";
+import { POSICOES, POS_COLOR, type Atleta, type TimeEntry } from "@/lib/cartola-types";
 import { getPontuadosBatch } from "@/lib/cartola.functions";
 
 type Pontuados = Record<number, Record<number, { pontuacao: number; entrou: boolean; posicao_id: number }>>;
 
-export function MeusJogadoresPanel({ times }: { times: TimeEntry[] }) {
+export function MeusJogadoresPanel({ times, atletasMap }: { times: TimeEntry[]; atletasMap: Record<number, Atleta> }) {
   const fetchBatch = useServerFn(getPontuadosBatch);
   const [pontuados, setPontuados] = useState<Pontuados>({});
   const [loading, setLoading] = useState(false);
