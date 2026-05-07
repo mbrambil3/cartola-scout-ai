@@ -26,11 +26,29 @@ async function fetchCartola(path: string): Promise<any> {
 
 export const getMercadoStatus = createServerFn({ method: "GET" }).handler(async () => {
   const data = await fetchCartola("/mercado/status");
-  return { ...data, status_mercado_nome: STATUS_MERCADO_NOME[data.status_mercado] || "desconhecido" };
+  return {
+    rodada_atual: data.rodada_atual,
+    status_mercado: data.status_mercado,
+    temporada: data.temporada,
+    status_mercado_nome: STATUS_MERCADO_NOME[data.status_mercado] || "desconhecido",
+  };
 });
 
 export const getAtletas = createServerFn({ method: "GET" }).handler(async () => {
-  return await fetchCartola("/atletas/mercado");
+  const data = await fetchCartola("/atletas/mercado");
+  // Slim payload: keep only fields the client uses
+  const atletas = (data.atletas ?? []).map((a: any) => ({
+    atleta_id: a.atleta_id,
+    apelido: a.apelido,
+    nome: a.nome,
+    foto: a.foto ? a.foto.replace("FORMATO", "140x140") : null,
+    posicao_id: a.posicao_id,
+    clube_id: a.clube_id,
+    preco_num: a.preco_num,
+    media_num: a.media_num,
+    status_id: a.status_id,
+  }));
+  return { atletas };
 });
 
 export const getPartidas = createServerFn({ method: "GET" }).handler(async () => {
@@ -38,7 +56,18 @@ export const getPartidas = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const getClubes = createServerFn({ method: "GET" }).handler(async () => {
-  return await fetchCartola("/clubes");
+  const data = await fetchCartola("/clubes");
+  // Slim: only abreviacao + 45x45 escudo
+  const out: Record<string, { id: number; abreviacao: string; nome: string; escudos: { "45x45": string } }> = {};
+  for (const [id, c] of Object.entries<any>(data || {})) {
+    out[id] = {
+      id: c.id,
+      abreviacao: c.abreviacao,
+      nome: c.nome,
+      escudos: { "45x45": c.escudos?.["45x45"] ?? "" },
+    };
+  }
+  return out;
 });
 
 export const getRodadas = createServerFn({ method: "GET" }).handler(async () => {
