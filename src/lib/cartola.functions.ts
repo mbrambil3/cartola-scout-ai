@@ -7,21 +7,37 @@ type CacheEntry = { data: any; ts: number };
 const cache = new Map<string, CacheEntry>();
 const TTL = 5 * 60 * 1000;
 
-async function fetchCartola(path: string): Promise<any> {
+async function fetchCartola(path: string, retries = 2): Promise<any> {
   const key = path;
   const hit = cache.get(key);
   const now = Date.now();
   if (hit && now - hit.ts < TTL) return hit.data;
-  try {
-    const res = await fetch(BASE + path, { redirect: "follow" });
-    if (!res.ok) throw new Error(`Cartola ${res.status}`);
-    const data = await res.json();
-    cache.set(key, { data, ts: now });
-    return data;
-  } catch (e) {
-    if (hit) return hit.data;
-    throw new Error(`Falha ao consultar Cartola: ${(e as Error).message}`);
+  let lastErr: any;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(BASE + path, {
+        redirect: "follow",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept": "application/json, text/plain, */*",
+          "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+          "Referer": "https://cartola.globo.com/",
+          "Origin": "https://cartola.globo.com",
+        },
+      });
+      if (!res.ok) throw new Error(`Cartola ${res.status}`);
+      const data = await res.json();
+      cache.set(key, { data, ts: now });
+      return data;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+      }
+    }
   }
+  if (hit) return hit.data;
+  throw new Error(`Falha ao consultar Cartola: ${(lastErr as Error).message}`);
 }
 
 export const getMercadoStatus = createServerFn({ method: "GET" }).handler(async () => {
