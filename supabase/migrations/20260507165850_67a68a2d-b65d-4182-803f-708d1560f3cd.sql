@@ -1,0 +1,2 @@
+UPDATE public.user_times SET times = (SELECT times FROM public.user_times WHERE user_id='MBRAMBILA'), updated_at=now() WHERE user_id='mbrambila';
+DELETE FROM public.user_times WHERE user_id='MBRAMBILA';
