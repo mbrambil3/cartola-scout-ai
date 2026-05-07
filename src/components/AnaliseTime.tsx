@@ -13,6 +13,7 @@ import { PlayerSearchDialog } from "@/components/PlayerSearchDialog";
 import { SaveTimeDialog } from "@/components/SaveTimeDialog";
 import { LoadTimesDialog } from "@/components/LoadTimesDialog";
 import { AnaliticosPanel } from "@/components/AnaliticosPanel";
+import { MeusJogadoresPanel } from "@/components/MeusJogadoresPanel";
 
 type SlotKey = string; // "{posicao_id}-{idx}"
 type Selecao = Record<SlotKey, number | undefined>; // atleta_id por slot
@@ -490,6 +491,9 @@ export function AnaliseTime() {
       <SectionHeader title="PAINEL ANALÍTICO" subtitle="Insights do campeonato e do seu histórico" />
       <AnaliticosPanel times={times} posStats={posStats} />
 
+      <SectionHeader title="PAINEL DOS SEUS JOGADORES" subtitle="Mesma análise, mas considerando apenas jogadores escalados nos seus times salvos" />
+      <MeusJogadoresPanel times={times} atletasMap={atletasMap} />
+
       <SaveTimeDialog open={saveOpen} onOpenChange={setSaveOpen} onSave={salvarTime} />
       <LoadTimesDialog open={loadOpen} onOpenChange={setLoadOpen} times={times} onLoad={carregarTime} onDelete={(id) => removeTime(id)} />
 
@@ -644,7 +648,7 @@ function ReservaLuxoBanner({
     <div className="rounded-md p-3 flex items-center gap-3" style={{ background: "color-mix(in oklab, var(--rdl) 8%, transparent)", border: "1px solid color-mix(in oklab, var(--rdl) 35%, transparent)" }}>
       <div className="flex-1">
         <div className="text-[10px] font-display tracking-widest" style={{ color: "var(--rdl)" }}>RESERVA DE LUXO</div>
-        <div className="text-xs text-muted-foreground">Substitui titular se pontuar mais (mesma posição)</div>
+        <div className="text-xs text-muted-foreground">Substitui titular se pontuar mais (mesma posição) · qualquer preço permitido</div>
       </div>
       {!a ? (
         <button onClick={setPickerRDL} className="px-3 py-2 rounded-md text-xs font-display tracking-wider hover:bg-white/5" style={{ border: "1px dashed var(--rdl)", color: "var(--rdl)" }} data-testid="btn-add-rdl">
