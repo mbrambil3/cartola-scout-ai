@@ -517,7 +517,7 @@ export function AnaliseTime() {
         detalhes={detalhesByAtleta}
         subOutId={subOut?.atleta_id}
         subInId={subIn?.atleta_id}
-        onPick={(s) => setPickerSlot(s)}
+        onPick={(s: any) => setPickerSlot(s)}
         onCap={setCapitao}
         onRemove={removerSlot}
       />
