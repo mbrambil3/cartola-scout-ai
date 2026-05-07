@@ -65,7 +65,7 @@ export function AnaliseTime() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [loadOpen, setLoadOpen] = useState(false);
   const [posStats, setPosStats] = useState<any>(null);
-  const [editingIndice, setEditingIndice] = useState<{ id: number; v: string } | null>(null);
+  
 
   // Fetch initial data
   useEffect(() => {
@@ -213,10 +213,6 @@ export function AnaliseTime() {
   const totalAcumulado = visiveis.reduce((s, t) => s + (t.pontuacao_final ?? 0), 0);
   const ocultos = times.filter(t => t.oculto).length;
   const mediaPontos = visiveis.length ? totalAcumulado / visiveis.length : 0;
-  const mediaIndice = (() => {
-    const arr = visiveis.filter(t => t.indice_confianca !== null);
-    return arr.length ? arr.reduce((s, t) => s + (t.indice_confianca ?? 0), 0) / arr.length : 0;
-  })();
   const melhor = visiveis.length ? Math.max(...visiveis.map(t => t.pontuacao_final ?? 0)) : 0;
   const pior = visiveis.length ? Math.min(...visiveis.map(t => t.pontuacao_final ?? 0)) : 0;
 
@@ -397,9 +393,8 @@ export function AnaliseTime() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Stat label="Média Pts" value={mediaPontos.toFixed(2)} />
-          <Stat label="Média Índice" value={`${mediaIndice.toFixed(0)}%`} />
           <Stat label="Melhor" value={melhor.toFixed(1)} />
           <Stat label="Pior" value={pior.toFixed(1)} />
         </div>
@@ -416,7 +411,6 @@ export function AnaliseTime() {
                   <th className="text-left p-2">RODADA</th>
                   <th className="text-left p-2">NOME</th>
                   <th className="text-left p-2">ESQ</th>
-                  <th className="text-center p-2">ÍNDICE</th>
                   <th className="text-right p-2">PTS</th>
                   <th className="text-center p-2 w-10"></th>
                   <th className="text-center p-2 w-10"></th>
@@ -434,33 +428,6 @@ export function AnaliseTime() {
                         {t.reserva_luxo_id && <span className="ml-2 text-[10px]" style={{ color: "var(--rdl)" }}>RDL ativo no save</span>}
                       </td>
                       <td className="p-2 text-muted-foreground">{ESQUEMAS[t.esquema_id]?.nome ?? "?"}</td>
-                      <td className="p-2 text-center">
-                        {editingIndice?.id === t.id ? (
-                          <span className="inline-flex gap-1">
-                            <input
-                              autoFocus
-                              type="number" min={0} max={100} step={0.1}
-                              value={editingIndice.v}
-                              onChange={e => setEditingIndice({ id: t.id, v: e.target.value })}
-                              className="w-14 bg-background border border-border rounded px-1 text-xs font-mono-data"
-                            />
-                            <button
-                              onClick={async () => {
-                                const v = editingIndice.v === "" ? null : Math.max(0, Math.min(100, Number(editingIndice.v)));
-                                await updateTime(t.id, { indice_confianca: v });
-                                setEditingIndice(null);
-                              }}
-                              className="text-primary text-xs">✓</button>
-                          </span>
-                        ) : (
-                          <button
-                            className="font-mono-data hover:underline"
-                            onClick={() => setEditingIndice({ id: t.id, v: String(t.indice_confianca ?? "") })}
-                          >
-                            {t.indice_confianca !== null ? `${t.indice_confianca.toFixed(0)}%` : "—"}
-                          </button>
-                        )}
-                      </td>
                       <td className={`p-2 text-right font-mono-data ${t.oculto ? "line-through" : ""} ${pts === null ? "text-muted-foreground" : pts >= 0 ? "text-primary" : "text-destructive"}`}>
                         {pts === null ? "—" : pts.toFixed(2)}
                       </td>

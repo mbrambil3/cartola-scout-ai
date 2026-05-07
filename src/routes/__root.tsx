@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import logoUrl from "../assets/logo.png";
 import { Toaster } from "sonner";
 
 function NotFoundComponent() {
@@ -73,15 +74,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Prancheta FC — Análise pós-rodada" },
-      { name: "description", content: "Análise retroativa de times do Cartola FC com índice de confiança e painel analítico." },
+      { title: "Cartola Lab — Análise pós-rodada" },
+      { name: "description", content: "Laboratório de análise pós-rodada para times do Cartola FC." },
       { name: "theme-color", content: "#0a0a0a" },
-      { property: "og:title", content: "Prancheta FC" },
-      { property: "og:description", content: "Análise pós-rodada de times do Cartola FC." },
+      { property: "og:title", content: "Cartola Lab" },
+      { property: "og:description", content: "Laboratório de análise pós-rodada do Cartola FC." },
       { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: logoUrl },
+      { rel: "apple-touch-icon", href: logoUrl },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700&display=swap" },

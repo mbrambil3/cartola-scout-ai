@@ -5,6 +5,7 @@ import { LogOut, UserCircle2 } from "lucide-react";
 import { getMercadoStatus } from "@/lib/cartola.functions";
 import { useUserSession } from "@/lib/userStorage";
 import { LoginDialog } from "./LoginDialog";
+import logoUrl from "@/assets/logo.png";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { userId, logout } = useUserSession();
@@ -23,11 +24,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-3" data-testid="logo-link">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground text-xl">
-              ⚽
-            </div>
+            <img src={logoUrl} alt="Cartola Lab" width={40} height={40} className="w-10 h-10 object-contain" />
             <div>
-              <div className="font-display font-bold text-lg leading-none tracking-wider">PRANCHETA FC</div>
+              <div className="font-display font-bold text-lg leading-none tracking-wider">CARTOLA LAB</div>
               <div className="text-[10px] text-muted-foreground tracking-[0.2em] font-display">PÓS-RODADA</div>
             </div>
           </Link>
