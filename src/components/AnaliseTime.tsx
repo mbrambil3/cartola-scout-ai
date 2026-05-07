@@ -487,12 +487,20 @@ export function AnaliseTime() {
         )}
       </section>
 
-      {/* Painel Analítico */}
-      <SectionHeader title="PAINEL ANALÍTICO" subtitle="Insights do campeonato e do seu histórico" />
-      <AnaliticosPanel times={times} posStats={posStats} />
-
-      <SectionHeader title="PAINEL DOS SEUS JOGADORES" subtitle="Mesma análise, mas considerando apenas jogadores escalados nos seus times salvos" />
-      <MeusJogadoresPanel times={times} atletasMap={atletasMap} />
+      {/* Painel Analítico (Geral + Seus Jogadores) */}
+      <SectionHeader title="PAINEL ANALÍTICO" subtitle="Alterne entre o panorama geral do campeonato e os seus jogadores" />
+      <Tabs defaultValue="geral" className="w-full">
+        <TabsList className="mb-3">
+          <TabsTrigger value="geral">Geral do campeonato</TabsTrigger>
+          <TabsTrigger value="meus">Meus jogadores</TabsTrigger>
+        </TabsList>
+        <TabsContent value="geral">
+          <AnaliticosPanel times={times} posStats={posStats} />
+        </TabsContent>
+        <TabsContent value="meus">
+          <MeusJogadoresPanel times={times} atletasMap={atletasMap} />
+        </TabsContent>
+      </Tabs>
 
       <SaveTimeDialog open={saveOpen} onOpenChange={setSaveOpen} onSave={salvarTime} />
       <LoadTimesDialog open={loadOpen} onOpenChange={setLoadOpen} times={times} onLoad={carregarTime} onDelete={(id) => removeTime(id)} />
