@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ESQUEMAS, POSICOES, POS_COLOR, type Atleta, type Clube, type TimeEntry } from "@/lib/cartola-types";
-import { getAtletas, getClubes, getMercadoStatus, analiseTime, getPosicoesStats } from "@/lib/cartola.functions";
+import { getAtletas, getClubes, getMercadoStatus, analiseTime, getPosicoesStats, getUltimaRodadaComPontuacao } from "@/lib/cartola.functions";
 import { useUserSession, useTimesStorage } from "@/lib/userStorage";
 import { Loading, SectionHeader, Stat, PositionBadge, Escudo } from "@/components/Pieces";
 import { PlayerSearchDialog } from "@/components/PlayerSearchDialog";
@@ -48,6 +48,7 @@ export function AnaliseTime() {
   const fetchClubes = useServerFn(getClubes);
   const fetchStatus = useServerFn(getMercadoStatus);
   const fetchAnalise = useServerFn(analiseTime);
+  const fetchUltimaRodada = useServerFn(getUltimaRodadaComPontuacao);
   const fetchPosStats = useServerFn(getPosicoesStats);
 
   const [atletas, setAtletas] = useState<Atleta[] | null>(null);
@@ -69,14 +70,14 @@ export function AnaliseTime() {
 
   // Fetch initial data
   useEffect(() => {
-    Promise.all([fetchAtletas(), fetchClubes(), fetchStatus()])
-      .then(([atResp, cl, st]) => {
+    Promise.all([fetchAtletas(), fetchClubes(), fetchStatus(), fetchUltimaRodada()])
+      .then(([atResp, cl, st, ult]) => {
         setAtletas(atResp.atletas ?? []);
         setClubes(cl);
         setStatus(st);
-        const ra = st.rodada_atual ?? 1;
-        const ult = st.status_mercado === 1 ? Math.max(1, ra - 1) : ra;
-        setRodada(ult);
+        // Usa a última rodada com pontuação real (funciona mesmo com mercado
+        // fechado na segunda-feira, quando rodada_atual já aponta para a próxima).
+        setRodada(ult?.rodada ?? Math.max(1, (st.rodada_atual ?? 1) - 1));
       })
       .catch(e => toast.error(`Erro ao carregar dados: ${e.message}`));
     fetchPosStats({ data: { rodadas_back: 0 } }).then(setPosStats).catch(() => {});
