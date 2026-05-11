@@ -58,11 +58,12 @@ export function AnaliseTime() {
   const [rodada, setRodada] = useState<number>(1);
   const [selecao, setSelecao] = useState<Selecao>({});
   const [capitaoKey, setCapitaoKey] = useState<SlotKey | null>(null);
-  const [reservaLuxo, setReservaLuxo] = useState<number | null>(null);
+  const [reservas, setReservas] = useState<Record<number, number | undefined>>({}); // posicao_id -> atleta_id
+  const [rdlPos, setRdlPos] = useState<number | null>(null); // posicao_id marcada como RDL
   const [resultado, setResultado] = useState<any>(null);
   const [calculando, setCalculando] = useState(false);
   const [pickerSlot, setPickerSlot] = useState<{ key: SlotKey; posicao_id: number } | null>(null);
-  const [pickerRDL, setPickerRDL] = useState(false);
+  const [pickerReservaPos, setPickerReservaPos] = useState<number | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [loadOpen, setLoadOpen] = useState(false);
   const [posStats, setPosStats] = useState<any>(null);
