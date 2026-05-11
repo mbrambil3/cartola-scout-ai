@@ -136,6 +136,11 @@ const AnaliseSchema = z.object({
   rodada: z.number().int().min(1),
   jogadores: z.array(z.object({ atleta_id: z.number().int(), capitao: z.boolean().optional() })).min(1),
   reserva_luxo_id: z.number().int().nullable().optional(),
+  reservas: z.array(z.object({
+    posicao_id: z.number().int(),
+    atleta_id: z.number().int(),
+    is_rdl: z.boolean().optional(),
+  })).optional(),
 });
 
 type DetalheJogador = {
@@ -167,7 +172,16 @@ const POS_ABREV: Record<number, string> = { 1: "GOL", 2: "LAT", 3: "ZAG", 4: "ME
 export const analiseTime = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => AnaliseSchema.parse(input))
   .handler(async ({ data }) => {
-    const { rodada, jogadores, reserva_luxo_id } = data;
+    const { rodada, jogadores, reserva_luxo_id, reservas } = data;
+
+    // Normaliza: lista unificada de reservas. Se vier no novo formato, usa.
+    // Caso contrário, faz fallback para reserva_luxo_id (compat).
+    let reservasInput: { posicao_id: number; atleta_id: number; is_rdl?: boolean }[] = [];
+    if (reservas && reservas.length > 0) {
+      reservasInput = reservas;
+    } else if (reserva_luxo_id) {
+      reservasInput = [{ posicao_id: 0, atleta_id: reserva_luxo_id, is_rdl: true }];
+    }
 
     // validações iniciais
     const caps = jogadores.filter(j => j.capitao);
@@ -216,33 +230,62 @@ export const analiseTime = createServerFn({ method: "POST" })
       };
     }
 
-    // validar técnico capitão
     if (capitaoId !== null) {
       const cap = atletasMap[String(capitaoId)];
       if (cap?.posicao_id === 6) throw new Error("Técnico não pode ser capitão");
     }
 
+    const titularIds = new Set(jogadores.map(j => j.atleta_id));
+    for (const r of reservasInput) {
+      if (titularIds.has(r.atleta_id)) throw new Error("Reserva não pode estar nos titulares");
+      const ra = atletasMap[String(r.atleta_id)];
+      if (ra?.posicao_id === 6) throw new Error("Reserva não pode ser técnico");
+    }
+    const rdlCount = reservasInput.filter(r => r.is_rdl).length;
+    if (rdlCount > 1) throw new Error("Apenas 1 Reserva de Luxo permitido");
+
     const titularesOriginais = jogadores.map(j => buildDetalhe(j.atleta_id, capitaoId));
     const totalOriginal = titularesOriginais.reduce((s, j) => s + j.pontos_aplicados, 0);
 
     let titularesFinais = [...titularesOriginais];
-    let substituicao: any = { ativou: false, sai: null, entra: null };
-    let rdlInfo: any = null;
     let capitaoIdFinal = capitaoId;
+    const substituicoes: any[] = [];
+    let rdlInfo: any = null;
+    let substituicaoRdl: any = { ativou: false, sai: null, entra: null };
 
-    if (reserva_luxo_id) {
-      const rdlAtleta = atletasMap[String(reserva_luxo_id)];
+    // Processa reservas comuns primeiro (entram se titular não jogou + reserva pontuou positivo)
+    const comuns = reservasInput.filter(r => !r.is_rdl);
+    const rdl = reservasInput.find(r => r.is_rdl);
+
+    for (const r of comuns) {
+      const ra = atletasMap[String(r.atleta_id)];
+      if (!ra) continue;
+      const samePos = titularesFinais.filter(t => t.posicao_id === ra.posicao_id);
+      const naoEntrou = samePos.filter(t => !t.entrou_em_campo);
+      if (naoEntrou.length === 0) continue;
+      const rDet = buildDetalhe(r.atleta_id, capitaoIdFinal);
+      if (!rDet.entrou_em_campo || rDet.pontuacao <= 0) continue;
+      const sai = naoEntrou.find(t => t.capitao) ?? naoEntrou[0];
+      const herdou = sai.capitao;
+      if (herdou) capitaoIdFinal = r.atleta_id;
+      const rFinal = buildDetalhe(r.atleta_id, capitaoIdFinal);
+      titularesFinais = titularesFinais.map(t =>
+        t.atleta_id === sai.atleta_id ? rFinal : (herdou ? buildDetalhe(t.atleta_id, capitaoIdFinal) : t)
+      );
+      substituicoes.push({
+        tipo: "comum",
+        sai: { atleta_id: sai.atleta_id, apelido: sai.apelido, pontuacao: sai.pontuacao, pontos_aplicados: sai.pontos_aplicados, era_capitao: sai.capitao },
+        entra: { atleta_id: rFinal.atleta_id, apelido: rFinal.apelido, pontuacao: rFinal.pontuacao, pontos_aplicados: rFinal.pontos_aplicados, herdou_capitao: herdou },
+      });
+    }
+
+    // Processa RDL (mesma posição, substitui menor titular se pontuar mais)
+    if (rdl) {
+      const rdlAtleta = atletasMap[String(rdl.atleta_id)];
       if (!rdlAtleta) throw new Error("Reserva de Luxo não encontrado");
-      if (rdlAtleta.posicao_id === 6) throw new Error("Reserva de Luxo não pode ser técnico");
-      if (jogadores.some(j => j.atleta_id === reserva_luxo_id)) {
-        throw new Error("Reserva de Luxo não pode estar nos titulares");
-      }
-      const samePos = titularesOriginais.filter(t => t.posicao_id === rdlAtleta.posicao_id);
-      if (samePos.length === 0) throw new Error("Não há titulares na posição do Reserva de Luxo");
-
-      const rdlDet = buildDetalhe(reserva_luxo_id, capitaoId);
-      const minPont = Math.min(...samePos.map(t => t.pontuacao));
-
+      const samePos = titularesFinais.filter(t => t.posicao_id === rdlAtleta.posicao_id);
+      const rdlDet = buildDetalhe(rdl.atleta_id, capitaoIdFinal);
+      const minPont = samePos.length ? Math.min(...samePos.map(t => t.pontuacao)) : 0;
       rdlInfo = {
         atleta_id: rdlAtleta.atleta_id,
         apelido: rdlAtleta.apelido,
@@ -255,22 +298,22 @@ export const analiseTime = createServerFn({ method: "POST" })
         ativou_substituicao: false,
         comparativo_min_titular: rdlDet.pontuacao - minPont,
       };
-
-      if (rdlDet.pontuacao > minPont) {
+      if (samePos.length > 0 && rdlDet.pontuacao > minPont) {
         const empatados = samePos.filter(t => t.pontuacao === minPont);
         const sai = empatados.find(e => e.capitao) ?? empatados[0];
         const herdou = sai.capitao;
-        const novoCapId = herdou ? rdlAtleta.atleta_id : capitaoId;
-        capitaoIdFinal = novoCapId;
-        const rdlFinal = buildDetalhe(reserva_luxo_id, novoCapId);
-        // se herdou, precisa recalcular outros: na verdade só o cap muda; sai cap é removido
-        titularesFinais = titularesOriginais.map(t => t.atleta_id === sai.atleta_id ? rdlFinal : t);
+        if (herdou) capitaoIdFinal = rdl.atleta_id;
+        const rFinal = buildDetalhe(rdl.atleta_id, capitaoIdFinal);
+        titularesFinais = titularesFinais.map(t =>
+          t.atleta_id === sai.atleta_id ? rFinal : (herdou ? buildDetalhe(t.atleta_id, capitaoIdFinal) : t)
+        );
         rdlInfo.ativou_substituicao = true;
-        substituicao = {
+        substituicaoRdl = {
           ativou: true,
           sai: { atleta_id: sai.atleta_id, apelido: sai.apelido, pontuacao: sai.pontuacao, pontos_aplicados: sai.pontos_aplicados, era_capitao: sai.capitao },
-          entra: { atleta_id: rdlFinal.atleta_id, apelido: rdlFinal.apelido, pontuacao: rdlFinal.pontuacao, pontos_aplicados: rdlFinal.pontos_aplicados, herdou_capitao: herdou },
+          entra: { atleta_id: rFinal.atleta_id, apelido: rFinal.apelido, pontuacao: rFinal.pontuacao, pontos_aplicados: rFinal.pontos_aplicados, herdou_capitao: herdou },
         };
+        substituicoes.push({ tipo: "rdl", ...substituicaoRdl });
       }
     }
 
@@ -289,7 +332,8 @@ export const analiseTime = createServerFn({ method: "POST" })
       jogadores: titularesFinais,
       jogadores_originais: titularesOriginais,
       reserva_luxo: rdlInfo,
-      substituicao,
+      substituicao: substituicaoRdl,
+      substituicoes,
     };
   });
 

@@ -58,11 +58,12 @@ export function AnaliseTime() {
   const [rodada, setRodada] = useState<number>(1);
   const [selecao, setSelecao] = useState<Selecao>({});
   const [capitaoKey, setCapitaoKey] = useState<SlotKey | null>(null);
-  const [reservaLuxo, setReservaLuxo] = useState<number | null>(null);
+  const [reservas, setReservas] = useState<Record<number, number | undefined>>({}); // posicao_id -> atleta_id
+  const [rdlPos, setRdlPos] = useState<number | null>(null); // posicao_id marcada como RDL
   const [resultado, setResultado] = useState<any>(null);
   const [calculando, setCalculando] = useState(false);
   const [pickerSlot, setPickerSlot] = useState<{ key: SlotKey; posicao_id: number } | null>(null);
-  const [pickerRDL, setPickerRDL] = useState(false);
+  const [pickerReservaPos, setPickerReservaPos] = useState<number | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [loadOpen, setLoadOpen] = useState(false);
   const [posStats, setPosStats] = useState<any>(null);
@@ -113,18 +114,23 @@ export function AnaliseTime() {
       return next;
     });
     setCapitaoKey(null);
-    setReservaLuxo(null);
+    setReservas({});
+    setRdlPos(null);
     setResultado(null);
   }, [esquemaId]);
 
   // Ao mudar rodada, reseta resultado
   useEffect(() => { setResultado(null); }, [rodada]);
 
-  const limpar = () => { setSelecao({}); setCapitaoKey(null); setReservaLuxo(null); setResultado(null); };
+  const limpar = () => { setSelecao({}); setCapitaoKey(null); setReservas({}); setRdlPos(null); setResultado(null); };
 
   const handlePickAtleta = (a: Atleta) => {
-    if (pickerRDL) {
-      setReservaLuxo(a.atleta_id);
+    if (pickerReservaPos !== null) {
+      if (a.posicao_id !== pickerReservaPos) {
+        toast.error("Reserva deve ser da mesma posição do slot");
+        return;
+      }
+      setReservas(prev => ({ ...prev, [pickerReservaPos]: a.atleta_id }));
       setResultado(null);
       return;
     }
@@ -146,13 +152,28 @@ export function AnaliseTime() {
     setResultado(null);
   };
 
+  const removerReserva = (pos: number) => {
+    setReservas(prev => { const n = { ...prev }; delete n[pos]; return n; });
+    if (rdlPos === pos) setRdlPos(null);
+    setResultado(null);
+  };
+
+  const toggleRdl = (pos: number) => {
+    if (!reservas[pos]) { toast.error("Selecione um reserva nessa posição primeiro"); return; }
+    setRdlPos(prev => prev === pos ? null : pos);
+    setResultado(null);
+  };
+
   const calcular = async () => {
     if (totalSelecionados !== 12) return;
     if (!capitaoKey) { toast.error("Escolha um capitão antes de calcular"); return; }
     setCalculando(true);
     try {
       const jogadores = slots.map(s => ({ atleta_id: selecao[s.key]!, capitao: capitaoKey === s.key }));
-      const r = await fetchAnalise({ data: { rodada, jogadores, reserva_luxo_id: reservaLuxo ?? undefined } });
+      const reservasArr = Object.entries(reservas)
+        .filter(([, id]) => !!id)
+        .map(([pos, id]) => ({ posicao_id: Number(pos), atleta_id: id!, is_rdl: Number(pos) === rdlPos }));
+      const r = await fetchAnalise({ data: { rodada, jogadores, reservas: reservasArr } });
       setResultado(r);
       setTimeout(() => document.getElementById("resultado")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } catch (e: any) {
@@ -163,13 +184,17 @@ export function AnaliseTime() {
   };
 
   const salvarTime = (nome: string, indice: number | null) => {
+    const reservasArr = Object.entries(reservas).filter(([, id]) => !!id).map(([pos, id]) => ({ posicao_id: Number(pos), atleta_id: id! }));
+    const rdlAtletaId = rdlPos !== null ? (reservas[rdlPos] ?? null) : null;
     const entry: TimeEntry = {
       id: Date.now(),
       nome,
       esquema_id: esquemaId,
       jogadores: slots.filter(s => selecao[s.key]).map(s => ({ slotKey: s.key, posicao_id: s.posicao_id, atleta_id: selecao[s.key]! })),
       capitao_id: capitaoKey ? selecao[capitaoKey] ?? null : null,
-      reserva_luxo_id: reservaLuxo,
+      reserva_luxo_id: rdlAtletaId,
+      reservas: reservasArr,
+      rdl_posicao: rdlPos,
       pontuacao_final: resultado?.total_final ?? null,
       pontuacao_original: resultado?.total_original ?? null,
       rodada_calculada: resultado?.rodada ?? null,
@@ -188,7 +213,19 @@ export function AnaliseTime() {
       setSelecao(sel);
       const capSlot = t.capitao_id ? t.jogadores.find(j => j.atleta_id === t.capitao_id)?.slotKey ?? null : null;
       setCapitaoKey(capSlot);
-      setReservaLuxo(t.reserva_luxo_id);
+      const r: Record<number, number> = {};
+      if (t.reservas && t.reservas.length > 0) {
+        for (const x of t.reservas) r[x.posicao_id] = x.atleta_id;
+        setReservas(r);
+        setRdlPos(t.rdl_posicao ?? null);
+      } else if (t.reserva_luxo_id) {
+        // compat antigo: descobre posição pelo atleta no mercado
+        const a = atletasMap[t.reserva_luxo_id];
+        if (a) { r[a.posicao_id] = t.reserva_luxo_id; setReservas(r); setRdlPos(a.posicao_id); }
+        else { setReservas({}); setRdlPos(null); }
+      } else {
+        setReservas({}); setRdlPos(null);
+      }
       setResultado(null);
       if (t.rodada_calculada) setRodada(t.rodada_calculada);
     }, 30);
@@ -296,15 +333,15 @@ export function AnaliseTime() {
         </div>
       </div>
 
-      {/* Slots Renderer abaixo via componente interno */}
-      {/* Reserva de Luxo banner */}
-      <ReservaLuxoBanner
+      {/* Reservas por posição (uma marcada como RDL) */}
+      <ReservasBar
         atletasMap={atletasMap}
         clubes={clubes}
-        reservaLuxo={reservaLuxo}
-        setPickerRDL={() => setPickerRDL(true)}
-        clear={() => { setReservaLuxo(null); setResultado(null); }}
-        resultado={resultado}
+        reservas={reservas}
+        rdlPos={rdlPos}
+        onPick={(pos) => setPickerReservaPos(pos)}
+        onRemove={removerReserva}
+        onToggleRdl={toggleRdl}
       />
 
       {/* Resultado */}
@@ -481,15 +518,15 @@ export function AnaliseTime() {
       <LoadTimesDialog open={loadOpen} onOpenChange={setLoadOpen} times={times} onLoad={carregarTime} onDelete={(id) => removeTime(id)} />
 
       <PlayerSearchDialog
-        open={!!pickerSlot || pickerRDL}
-        onOpenChange={(v) => { if (!v) { setPickerSlot(null); setPickerRDL(false); } }}
+        open={!!pickerSlot || pickerReservaPos !== null}
+        onOpenChange={(v) => { if (!v) { setPickerSlot(null); setPickerReservaPos(null); } }}
         atletas={atletas}
         clubes={clubes}
-        posicao_id={pickerSlot?.posicao_id}
-        rdlMode={pickerRDL}
+        posicao_id={pickerSlot?.posicao_id ?? pickerReservaPos ?? undefined}
+        rdlMode={false}
         excludeIds={[
           ...Object.values(selecao).filter(Boolean) as number[],
-          ...(reservaLuxo ? [reservaLuxo] : []),
+          ...(Object.values(reservas).filter(Boolean) as number[]),
         ]}
         onSelect={handlePickAtleta}
       />
@@ -613,54 +650,72 @@ export function AnaliseTime() {
   function SlotControls(_props: any) { return null; }
 }
 
-function ReservaLuxoBanner({
-  atletasMap, clubes, reservaLuxo, setPickerRDL, clear, resultado,
+function ReservasBar({
+  atletasMap, clubes, reservas, rdlPos, onPick, onRemove, onToggleRdl,
 }: {
   atletasMap: Record<number, Atleta>;
   clubes: Record<string, Clube>;
-  reservaLuxo: number | null;
-  setPickerRDL: () => void;
-  clear: () => void;
-  resultado: any;
+  reservas: Record<number, number | undefined>;
+  rdlPos: number | null;
+  onPick: (pos: number) => void;
+  onRemove: (pos: number) => void;
+  onToggleRdl: (pos: number) => void;
 }) {
-  const a = reservaLuxo ? atletasMap[reservaLuxo] : null;
-  const club = a ? clubes[String(a.clube_id)] : null;
-  const rdlInfo = resultado?.reserva_luxo;
-
+  const positions: { id: number; label: string }[] = [
+    { id: 1, label: "GOL" }, { id: 2, label: "LAT" }, { id: 3, label: "ZAG" },
+    { id: 4, label: "MEI" }, { id: 5, label: "ATA" },
+  ];
   return (
-    <div className="rounded-md p-3 flex items-center gap-3" style={{ background: "color-mix(in oklab, var(--rdl) 8%, transparent)", border: "1px solid color-mix(in oklab, var(--rdl) 35%, transparent)" }}>
-      <div className="flex-1">
-        <div className="text-[10px] font-display tracking-widest" style={{ color: "var(--rdl)" }}>RESERVA DE LUXO</div>
-        <div className="text-xs text-muted-foreground">Substitui titular se pontuar mais (mesma posição) · qualquer preço permitido</div>
-      </div>
-      {!a ? (
-        <button onClick={setPickerRDL} className="px-3 py-2 rounded-md text-xs font-display tracking-wider hover:bg-white/5" style={{ border: "1px dashed var(--rdl)", color: "var(--rdl)" }} data-testid="btn-add-rdl">
-          <Crown className="w-3.5 h-3.5 inline mr-1" /> ADICIONAR RDL
-        </button>
-      ) : (
-        <div className="flex items-center gap-3 bg-card border border-border rounded-md p-2">
-          <img src={a.foto || ""} className="w-10 h-10 rounded-full object-cover bg-secondary" alt="" />
-          <div className="text-xs">
-            <div className="font-display font-semibold flex items-center gap-1.5">
-              {a.apelido}
-              <PositionBadge posicao_id={a.posicao_id} />
-            </div>
-            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-              <Escudo src={club?.escudos?.["30x30"] ?? club?.escudos?.["45x45"]} size={14} />
-              {club?.abreviacao} · C$ {(a.preco_num ?? 0).toFixed(1)}
-            </div>
-          </div>
-          {rdlInfo && (
-            <div className="text-right text-xs">
-              <div className="font-mono-data text-primary">{rdlInfo.pontuacao.toFixed(1)}</div>
-              <div className="text-[10px]" style={{ color: rdlInfo.ativou_substituicao ? "var(--primary)" : "var(--muted-foreground)" }}>
-                {rdlInfo.ativou_substituicao ? "Substituiu" : "Não substituiu"}
-              </div>
-            </div>
-          )}
-          <button onClick={clear} className="text-muted-foreground hover:text-destructive p-1"><X className="w-4 h-4" /></button>
+    <div className="rounded-md p-3" style={{ background: "color-mix(in oklab, var(--rdl) 6%, transparent)", border: "1px solid color-mix(in oklab, var(--rdl) 30%, transparent)" }}>
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <div className="text-[10px] font-display tracking-widest" style={{ color: "var(--rdl)" }}>BANCO DE RESERVAS</div>
+          <div className="text-[11px] text-muted-foreground">Reservas entram se o titular não jogar e o reserva pontuar positivo. Marque <Crown className="w-3 h-3 inline" style={{ color: "var(--rdl)" }} /> para definir <b>1</b> como Reserva de Luxo (substitui o titular de menor pontuação na posição).</div>
         </div>
-      )}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+        {positions.map(p => {
+          const aid = reservas[p.id];
+          const a = aid ? atletasMap[aid] : null;
+          const club = a ? clubes[String(a.clube_id)] : null;
+          const isRdl = rdlPos === p.id;
+          return (
+            <div key={p.id} className="rounded-md bg-card border border-border p-2 flex flex-col gap-1" style={isRdl ? { borderColor: "var(--rdl)", boxShadow: "0 0 0 1px var(--rdl)" } : undefined}>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-display tracking-wider text-muted-foreground">{p.label}</span>
+                {a && (
+                  <button
+                    onClick={() => onToggleRdl(p.id)}
+                    title={isRdl ? "Remover RDL" : "Marcar como Reserva de Luxo"}
+                    className="p-0.5 rounded hover:bg-white/5"
+                  >
+                    <Crown className="w-3.5 h-3.5" style={{ color: isRdl ? "var(--rdl)" : "var(--muted-foreground)" }} fill={isRdl ? "currentColor" : "none"} />
+                  </button>
+                )}
+              </div>
+              {!a ? (
+                <button onClick={() => onPick(p.id)} className="h-14 rounded-md border border-dashed border-border flex items-center justify-center text-[11px] text-muted-foreground hover:bg-white/5">
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Reserva
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <img src={a.foto || ""} className="w-8 h-8 rounded-full object-cover bg-secondary" alt="" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-display font-semibold truncate">{a.apelido}</div>
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <Escudo src={club?.escudos?.["45x45"]} size={12} />
+                      {club?.abreviacao}
+                    </div>
+                  </div>
+                  <button onClick={() => onRemove(p.id)} className="text-muted-foreground hover:text-destructive p-1">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

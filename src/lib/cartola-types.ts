@@ -59,6 +59,8 @@ export type TimeEntry = {
   jogadores: { slotKey: string; posicao_id: number; atleta_id: number }[];
   capitao_id: number | null;
   reserva_luxo_id: number | null;
+  reservas?: { posicao_id: number; atleta_id: number }[];
+  rdl_posicao?: number | null;
   pontuacao_final: number | null;
   pontuacao_original: number | null;
   rodada_calculada: number | null;
