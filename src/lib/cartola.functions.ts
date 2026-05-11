@@ -176,7 +176,7 @@ export const analiseTime = createServerFn({ method: "POST" })
     const [atletasResp, clubesResp, pontuadosResp] = await Promise.all([
       fetchCartola("/atletas/mercado"),
       fetchCartola("/clubes"),
-      fetchCartola(`/atletas/pontuados/${rodada}`).catch(() => ({ atletas: {} })),
+      fetchPontuadosRodada(rodada).catch(() => ({ atletas: {} })),
     ]);
 
     const atletasMap: Record<string, any> = {};
