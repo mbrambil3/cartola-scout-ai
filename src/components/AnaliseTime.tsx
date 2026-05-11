@@ -48,6 +48,7 @@ export function AnaliseTime() {
   const fetchClubes = useServerFn(getClubes);
   const fetchStatus = useServerFn(getMercadoStatus);
   const fetchAnalise = useServerFn(analiseTime);
+  const fetchUltimaRodada = useServerFn(getUltimaRodadaComPontuacao);
   const fetchPosStats = useServerFn(getPosicoesStats);
 
   const [atletas, setAtletas] = useState<Atleta[] | null>(null);
