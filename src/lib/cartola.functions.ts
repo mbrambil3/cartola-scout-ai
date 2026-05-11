@@ -136,6 +136,11 @@ const AnaliseSchema = z.object({
   rodada: z.number().int().min(1),
   jogadores: z.array(z.object({ atleta_id: z.number().int(), capitao: z.boolean().optional() })).min(1),
   reserva_luxo_id: z.number().int().nullable().optional(),
+  reservas: z.array(z.object({
+    posicao_id: z.number().int(),
+    atleta_id: z.number().int(),
+    is_rdl: z.boolean().optional(),
+  })).optional(),
 });
 
 type DetalheJogador = {
