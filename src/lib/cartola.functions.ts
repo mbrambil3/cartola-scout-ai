@@ -368,7 +368,7 @@ export const getPontuadosBatch = createServerFn({ method: "POST" })
     const unique = Array.from(new Set(data.rodadas));
     const results = await Promise.all(
       unique.map(r =>
-        fetchCartola(`/atletas/pontuados/${r}`)
+        fetchPontuadosRodada(r)
           .then(d => ({ r, atletas: d.atletas || {} }))
           .catch(() => ({ r, atletas: {} as Record<string, any> }))
       )
