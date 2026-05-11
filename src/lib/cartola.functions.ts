@@ -94,6 +94,22 @@ export const getEsquemas = createServerFn({ method: "GET" }).handler(async () =>
   return Object.entries(ESQUEMAS).map(([id, cfg]) => ({ id: Number(id), ...cfg }));
 });
 
+export const getUltimaRodadaComPontuacao = createServerFn({ method: "GET" }).handler(async () => {
+  const status = await fetchCartola("/mercado/status");
+  const ra: number = status.rodada_atual ?? 1;
+  // Tenta da rodada atual para trás até achar uma com atletas pontuados.
+  // Cobre o caso "mercado fechado segunda-feira" em que rodada_atual já aponta
+  // para a próxima rodada que ainda não foi jogada.
+  for (let r = ra; r >= 1; r--) {
+    try {
+      const d = await fetchCartola(`/atletas/pontuados/${r}`);
+      const n = Object.keys(d?.atletas ?? {}).length;
+      if (n > 0) return { rodada: r, rodada_atual: ra, status_mercado: status.status_mercado };
+    } catch { /* tenta a anterior */ }
+  }
+  return { rodada: Math.max(1, ra - 1), rodada_atual: ra, status_mercado: status.status_mercado };
+});
+
 export const getPontuacaoRodada = createServerFn({ method: "GET" })
   .inputValidator(z.object({ rodada: z.number().int().min(1) }))
   .handler(async ({ data }) => {
