@@ -650,54 +650,72 @@ export function AnaliseTime() {
   function SlotControls(_props: any) { return null; }
 }
 
-function ReservaLuxoBanner({
-  atletasMap, clubes, reservaLuxo, setPickerRDL, clear, resultado,
+function ReservasBar({
+  atletasMap, clubes, reservas, rdlPos, onPick, onRemove, onToggleRdl,
 }: {
   atletasMap: Record<number, Atleta>;
   clubes: Record<string, Clube>;
-  reservaLuxo: number | null;
-  setPickerRDL: () => void;
-  clear: () => void;
-  resultado: any;
+  reservas: Record<number, number | undefined>;
+  rdlPos: number | null;
+  onPick: (pos: number) => void;
+  onRemove: (pos: number) => void;
+  onToggleRdl: (pos: number) => void;
 }) {
-  const a = reservaLuxo ? atletasMap[reservaLuxo] : null;
-  const club = a ? clubes[String(a.clube_id)] : null;
-  const rdlInfo = resultado?.reserva_luxo;
-
+  const positions: { id: number; label: string }[] = [
+    { id: 1, label: "GOL" }, { id: 2, label: "LAT" }, { id: 3, label: "ZAG" },
+    { id: 4, label: "MEI" }, { id: 5, label: "ATA" },
+  ];
   return (
-    <div className="rounded-md p-3 flex items-center gap-3" style={{ background: "color-mix(in oklab, var(--rdl) 8%, transparent)", border: "1px solid color-mix(in oklab, var(--rdl) 35%, transparent)" }}>
-      <div className="flex-1">
-        <div className="text-[10px] font-display tracking-widest" style={{ color: "var(--rdl)" }}>RESERVA DE LUXO</div>
-        <div className="text-xs text-muted-foreground">Substitui titular se pontuar mais (mesma posição) · qualquer preço permitido</div>
-      </div>
-      {!a ? (
-        <button onClick={setPickerRDL} className="px-3 py-2 rounded-md text-xs font-display tracking-wider hover:bg-white/5" style={{ border: "1px dashed var(--rdl)", color: "var(--rdl)" }} data-testid="btn-add-rdl">
-          <Crown className="w-3.5 h-3.5 inline mr-1" /> ADICIONAR RDL
-        </button>
-      ) : (
-        <div className="flex items-center gap-3 bg-card border border-border rounded-md p-2">
-          <img src={a.foto || ""} className="w-10 h-10 rounded-full object-cover bg-secondary" alt="" />
-          <div className="text-xs">
-            <div className="font-display font-semibold flex items-center gap-1.5">
-              {a.apelido}
-              <PositionBadge posicao_id={a.posicao_id} />
-            </div>
-            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-              <Escudo src={club?.escudos?.["30x30"] ?? club?.escudos?.["45x45"]} size={14} />
-              {club?.abreviacao} · C$ {(a.preco_num ?? 0).toFixed(1)}
-            </div>
-          </div>
-          {rdlInfo && (
-            <div className="text-right text-xs">
-              <div className="font-mono-data text-primary">{rdlInfo.pontuacao.toFixed(1)}</div>
-              <div className="text-[10px]" style={{ color: rdlInfo.ativou_substituicao ? "var(--primary)" : "var(--muted-foreground)" }}>
-                {rdlInfo.ativou_substituicao ? "Substituiu" : "Não substituiu"}
-              </div>
-            </div>
-          )}
-          <button onClick={clear} className="text-muted-foreground hover:text-destructive p-1"><X className="w-4 h-4" /></button>
+    <div className="rounded-md p-3" style={{ background: "color-mix(in oklab, var(--rdl) 6%, transparent)", border: "1px solid color-mix(in oklab, var(--rdl) 30%, transparent)" }}>
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <div className="text-[10px] font-display tracking-widest" style={{ color: "var(--rdl)" }}>BANCO DE RESERVAS</div>
+          <div className="text-[11px] text-muted-foreground">Reservas entram se o titular não jogar e o reserva pontuar positivo. Marque <Crown className="w-3 h-3 inline" style={{ color: "var(--rdl)" }} /> para definir <b>1</b> como Reserva de Luxo (substitui o titular de menor pontuação na posição).</div>
         </div>
-      )}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+        {positions.map(p => {
+          const aid = reservas[p.id];
+          const a = aid ? atletasMap[aid] : null;
+          const club = a ? clubes[String(a.clube_id)] : null;
+          const isRdl = rdlPos === p.id;
+          return (
+            <div key={p.id} className="rounded-md bg-card border border-border p-2 flex flex-col gap-1" style={isRdl ? { borderColor: "var(--rdl)", boxShadow: "0 0 0 1px var(--rdl)" } : undefined}>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-display tracking-wider text-muted-foreground">{p.label}</span>
+                {a && (
+                  <button
+                    onClick={() => onToggleRdl(p.id)}
+                    title={isRdl ? "Remover RDL" : "Marcar como Reserva de Luxo"}
+                    className="p-0.5 rounded hover:bg-white/5"
+                  >
+                    <Crown className="w-3.5 h-3.5" style={{ color: isRdl ? "var(--rdl)" : "var(--muted-foreground)" }} fill={isRdl ? "currentColor" : "none"} />
+                  </button>
+                )}
+              </div>
+              {!a ? (
+                <button onClick={() => onPick(p.id)} className="h-14 rounded-md border border-dashed border-border flex items-center justify-center text-[11px] text-muted-foreground hover:bg-white/5">
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Reserva
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <img src={a.foto || ""} className="w-8 h-8 rounded-full object-cover bg-secondary" alt="" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-display font-semibold truncate">{a.apelido}</div>
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <Escudo src={club?.escudos?.["45x45"]} size={12} />
+                      {club?.abreviacao}
+                    </div>
+                  </div>
+                  <button onClick={() => onRemove(p.id)} className="text-muted-foreground hover:text-destructive p-1">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
