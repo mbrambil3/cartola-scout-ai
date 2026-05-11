@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ESQUEMAS, POSICOES, POS_COLOR, type Atleta, type Clube, type TimeEntry } from "@/lib/cartola-types";
-import { getAtletas, getClubes, getMercadoStatus, analiseTime, getPosicoesStats } from "@/lib/cartola.functions";
+import { getAtletas, getClubes, getMercadoStatus, analiseTime, getPosicoesStats, getUltimaRodadaComPontuacao } from "@/lib/cartola.functions";
 import { useUserSession, useTimesStorage } from "@/lib/userStorage";
 import { Loading, SectionHeader, Stat, PositionBadge, Escudo } from "@/components/Pieces";
 import { PlayerSearchDialog } from "@/components/PlayerSearchDialog";
