@@ -333,15 +333,15 @@ export function AnaliseTime() {
         </div>
       </div>
 
-      {/* Slots Renderer abaixo via componente interno */}
-      {/* Reserva de Luxo banner */}
-      <ReservaLuxoBanner
+      {/* Reservas por posição (uma marcada como RDL) */}
+      <ReservasBar
         atletasMap={atletasMap}
         clubes={clubes}
-        reservaLuxo={reservaLuxo}
-        setPickerRDL={() => setPickerRDL(true)}
-        clear={() => { setReservaLuxo(null); setResultado(null); }}
-        resultado={resultado}
+        reservas={reservas}
+        rdlPos={rdlPos}
+        onPick={(pos) => setPickerReservaPos(pos)}
+        onRemove={removerReserva}
+        onToggleRdl={toggleRdl}
       />
 
       {/* Resultado */}
