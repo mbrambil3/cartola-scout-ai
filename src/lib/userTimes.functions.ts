@@ -15,6 +15,8 @@ const TimeEntrySchema = z.object({
   jogadores: z.array(z.object({ slotKey: z.string(), posicao_id: z.number(), atleta_id: z.number() })),
   capitao_id: z.number().nullable(),
   reserva_luxo_id: z.number().nullable(),
+  reservas: z.array(z.object({ posicao_id: z.number(), atleta_id: z.number() })).optional(),
+  rdl_posicao: z.number().nullable().optional(),
   pontuacao_final: z.number().nullable(),
   pontuacao_original: z.number().nullable(),
   rodada_calculada: z.number().nullable(),
