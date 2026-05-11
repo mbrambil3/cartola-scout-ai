@@ -94,12 +94,26 @@ export const getEsquemas = createServerFn({ method: "GET" }).handler(async () =>
   return Object.entries(ESQUEMAS).map(([id, cfg]) => ({ id: Number(id), ...cfg }));
 });
 
+// Busca pontuados de uma rodada. Para a rodada corrente (em andamento ou
+// recém-encerrada antes da manutenção), o histórico /atletas/pontuados/{N}
+// vem vazio — nesse caso usamos o endpoint de parciais /atletas/pontuados.
+async function fetchPontuadosRodada(rodada: number): Promise<{ atletas: Record<string, any>; rodada?: number }> {
+  const hist = await fetchCartola(`/atletas/pontuados/${rodada}`).catch(() => ({ atletas: {} }));
+  if (hist?.atletas && Object.keys(hist.atletas).length > 0) return hist;
+  const parc = await fetchCartola(`/atletas/pontuados`).catch(() => ({ atletas: {}, rodada: null }));
+  if (parc?.rodada === rodada && parc?.atletas && Object.keys(parc.atletas).length > 0) return parc;
+  return hist;
+}
+
 export const getUltimaRodadaComPontuacao = createServerFn({ method: "GET" }).handler(async () => {
   const status = await fetchCartola("/mercado/status");
   const ra: number = status.rodada_atual ?? 1;
-  // Tenta da rodada atual para trás até achar uma com atletas pontuados.
-  // Cobre o caso "mercado fechado segunda-feira" em que rodada_atual já aponta
-  // para a próxima rodada que ainda não foi jogada.
+  // Verifica parciais primeiro: cobre o caso em que a rodada atual está em
+  // andamento ou recém-finalizada (mercado fechado, sem manutenção ainda).
+  const parc = await fetchCartola(`/atletas/pontuados`).catch(() => null);
+  if (parc?.rodada && parc?.atletas && Object.keys(parc.atletas).length > 0) {
+    return { rodada: parc.rodada, rodada_atual: ra, status_mercado: status.status_mercado };
+  }
   for (let r = ra; r >= 1; r--) {
     try {
       const d = await fetchCartola(`/atletas/pontuados/${r}`);
@@ -113,7 +127,7 @@ export const getUltimaRodadaComPontuacao = createServerFn({ method: "GET" }).han
 export const getPontuacaoRodada = createServerFn({ method: "GET" })
   .inputValidator(z.object({ rodada: z.number().int().min(1) }))
   .handler(async ({ data }) => {
-    return await fetchCartola(`/atletas/pontuados/${data.rodada}`);
+    return await fetchPontuadosRodada(data.rodada);
   });
 
 // ============ ANÁLISE DE TIME (CORE) ============
