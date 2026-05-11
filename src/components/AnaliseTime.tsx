@@ -70,14 +70,14 @@ export function AnaliseTime() {
 
   // Fetch initial data
   useEffect(() => {
-    Promise.all([fetchAtletas(), fetchClubes(), fetchStatus()])
-      .then(([atResp, cl, st]) => {
+    Promise.all([fetchAtletas(), fetchClubes(), fetchStatus(), fetchUltimaRodada()])
+      .then(([atResp, cl, st, ult]) => {
         setAtletas(atResp.atletas ?? []);
         setClubes(cl);
         setStatus(st);
-        const ra = st.rodada_atual ?? 1;
-        const ult = st.status_mercado === 1 ? Math.max(1, ra - 1) : ra;
-        setRodada(ult);
+        // Usa a última rodada com pontuação real (funciona mesmo com mercado
+        // fechado na segunda-feira, quando rodada_atual já aponta para a próxima).
+        setRodada(ult?.rodada ?? Math.max(1, (st.rodada_atual ?? 1) - 1));
       })
       .catch(e => toast.error(`Erro ao carregar dados: ${e.message}`));
     fetchPosStats({ data: { rodadas_back: 0 } }).then(setPosStats).catch(() => {});
