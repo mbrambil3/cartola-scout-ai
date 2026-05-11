@@ -518,15 +518,15 @@ export function AnaliseTime() {
       <LoadTimesDialog open={loadOpen} onOpenChange={setLoadOpen} times={times} onLoad={carregarTime} onDelete={(id) => removeTime(id)} />
 
       <PlayerSearchDialog
-        open={!!pickerSlot || pickerRDL}
-        onOpenChange={(v) => { if (!v) { setPickerSlot(null); setPickerRDL(false); } }}
+        open={!!pickerSlot || pickerReservaPos !== null}
+        onOpenChange={(v) => { if (!v) { setPickerSlot(null); setPickerReservaPos(null); } }}
         atletas={atletas}
         clubes={clubes}
-        posicao_id={pickerSlot?.posicao_id}
-        rdlMode={pickerRDL}
+        posicao_id={pickerSlot?.posicao_id ?? pickerReservaPos ?? undefined}
+        rdlMode={false}
         excludeIds={[
           ...Object.values(selecao).filter(Boolean) as number[],
-          ...(reservaLuxo ? [reservaLuxo] : []),
+          ...(Object.values(reservas).filter(Boolean) as number[]),
         ]}
         onSelect={handlePickAtleta}
       />
