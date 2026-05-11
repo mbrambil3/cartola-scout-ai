@@ -114,18 +114,23 @@ export function AnaliseTime() {
       return next;
     });
     setCapitaoKey(null);
-    setReservaLuxo(null);
+    setReservas({});
+    setRdlPos(null);
     setResultado(null);
   }, [esquemaId]);
 
   // Ao mudar rodada, reseta resultado
   useEffect(() => { setResultado(null); }, [rodada]);
 
-  const limpar = () => { setSelecao({}); setCapitaoKey(null); setReservaLuxo(null); setResultado(null); };
+  const limpar = () => { setSelecao({}); setCapitaoKey(null); setReservas({}); setRdlPos(null); setResultado(null); };
 
   const handlePickAtleta = (a: Atleta) => {
-    if (pickerRDL) {
-      setReservaLuxo(a.atleta_id);
+    if (pickerReservaPos !== null) {
+      if (a.posicao_id !== pickerReservaPos) {
+        toast.error("Reserva deve ser da mesma posição do slot");
+        return;
+      }
+      setReservas(prev => ({ ...prev, [pickerReservaPos]: a.atleta_id }));
       setResultado(null);
       return;
     }
@@ -147,13 +152,28 @@ export function AnaliseTime() {
     setResultado(null);
   };
 
+  const removerReserva = (pos: number) => {
+    setReservas(prev => { const n = { ...prev }; delete n[pos]; return n; });
+    if (rdlPos === pos) setRdlPos(null);
+    setResultado(null);
+  };
+
+  const toggleRdl = (pos: number) => {
+    if (!reservas[pos]) { toast.error("Selecione um reserva nessa posição primeiro"); return; }
+    setRdlPos(prev => prev === pos ? null : pos);
+    setResultado(null);
+  };
+
   const calcular = async () => {
     if (totalSelecionados !== 12) return;
     if (!capitaoKey) { toast.error("Escolha um capitão antes de calcular"); return; }
     setCalculando(true);
     try {
       const jogadores = slots.map(s => ({ atleta_id: selecao[s.key]!, capitao: capitaoKey === s.key }));
-      const r = await fetchAnalise({ data: { rodada, jogadores, reserva_luxo_id: reservaLuxo ?? undefined } });
+      const reservasArr = Object.entries(reservas)
+        .filter(([, id]) => !!id)
+        .map(([pos, id]) => ({ posicao_id: Number(pos), atleta_id: id!, is_rdl: Number(pos) === rdlPos }));
+      const r = await fetchAnalise({ data: { rodada, jogadores, reservas: reservasArr } });
       setResultado(r);
       setTimeout(() => document.getElementById("resultado")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } catch (e: any) {
@@ -164,13 +184,17 @@ export function AnaliseTime() {
   };
 
   const salvarTime = (nome: string, indice: number | null) => {
+    const reservasArr = Object.entries(reservas).filter(([, id]) => !!id).map(([pos, id]) => ({ posicao_id: Number(pos), atleta_id: id! }));
+    const rdlAtletaId = rdlPos !== null ? (reservas[rdlPos] ?? null) : null;
     const entry: TimeEntry = {
       id: Date.now(),
       nome,
       esquema_id: esquemaId,
       jogadores: slots.filter(s => selecao[s.key]).map(s => ({ slotKey: s.key, posicao_id: s.posicao_id, atleta_id: selecao[s.key]! })),
       capitao_id: capitaoKey ? selecao[capitaoKey] ?? null : null,
-      reserva_luxo_id: reservaLuxo,
+      reserva_luxo_id: rdlAtletaId,
+      reservas: reservasArr,
+      rdl_posicao: rdlPos,
       pontuacao_final: resultado?.total_final ?? null,
       pontuacao_original: resultado?.total_original ?? null,
       rodada_calculada: resultado?.rodada ?? null,
@@ -189,7 +213,19 @@ export function AnaliseTime() {
       setSelecao(sel);
       const capSlot = t.capitao_id ? t.jogadores.find(j => j.atleta_id === t.capitao_id)?.slotKey ?? null : null;
       setCapitaoKey(capSlot);
-      setReservaLuxo(t.reserva_luxo_id);
+      const r: Record<number, number> = {};
+      if (t.reservas && t.reservas.length > 0) {
+        for (const x of t.reservas) r[x.posicao_id] = x.atleta_id;
+        setReservas(r);
+        setRdlPos(t.rdl_posicao ?? null);
+      } else if (t.reserva_luxo_id) {
+        // compat antigo: descobre posição pelo atleta no mercado
+        const a = atletasMap[t.reserva_luxo_id];
+        if (a) { r[a.posicao_id] = t.reserva_luxo_id; setReservas(r); setRdlPos(a.posicao_id); }
+        else { setReservas({}); setRdlPos(null); }
+      } else {
+        setReservas({}); setRdlPos(null);
+      }
       setResultado(null);
       if (t.rodada_calculada) setRodada(t.rodada_calculada);
     }, 30);
