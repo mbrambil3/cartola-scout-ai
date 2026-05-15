@@ -15,6 +15,7 @@ import { SaveTimeDialog } from "@/components/SaveTimeDialog";
 import { LoadTimesDialog } from "@/components/LoadTimesDialog";
 import { AnaliticosPanel } from "@/components/AnaliticosPanel";
 import { MeusJogadoresPanel } from "@/components/MeusJogadoresPanel";
+import { RivaisPanel } from "@/components/RivaisPanel";
 
 type SlotKey = string; // "{posicao_id}-{idx}"
 type Selecao = Record<SlotKey, number | undefined>; // atleta_id por slot
