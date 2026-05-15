@@ -404,6 +404,99 @@ export const getPosicoesStats = createServerFn({ method: "GET" })
     return { por_posicao: out, por_rodada: porRodada, intervalo: { inicio, fim: ultima }, temporada };
   });
 
+// ============ TIMES DE OUTROS CARTOLEIROS (RIVAIS) ============
+
+export const searchTimesCartola = createServerFn({ method: "GET" })
+  .inputValidator(z.object({ q: z.string().min(2).max(60) }))
+  .handler(async ({ data }) => {
+    const arr = await fetchCartola(`/times?q=${encodeURIComponent(data.q)}`).catch(() => []);
+    if (!Array.isArray(arr)) return { times: [] };
+    return {
+      times: arr.slice(0, 30).map((t: any) => ({
+        time_id: t.time_id,
+        nome: t.nome,
+        nome_cartola: t.nome_cartola,
+        slug: t.slug,
+        url_escudo_png: t.url_escudo_png,
+        assinante: t.assinante,
+      })),
+    };
+  });
+
+export const getTimeRodada = createServerFn({ method: "GET" })
+  .inputValidator(z.object({ time_id: z.number().int().positive(), rodada: z.number().int().min(1) }))
+  .handler(async ({ data }) => {
+    const d = await fetchCartola(`/time/id/${data.time_id}/${data.rodada}`).catch(() => null);
+    if (!d || !d.time) return null;
+    const atletas = (d.atletas ?? []).map((a: any) => ({
+      atleta_id: a.atleta_id,
+      apelido: a.apelido,
+      foto: a.foto ? a.foto.replace("FORMATO", "140x140") : null,
+      posicao_id: a.posicao_id,
+      clube_id: a.clube_id,
+      pontos: typeof a.pontos_num === "number" ? a.pontos_num : 0,
+      entrou: !!a.entrou_em_campo,
+      preco: a.preco_num ?? null,
+    }));
+    return {
+      time_id: d.time.time_id,
+      nome: d.time.nome,
+      nome_cartola: d.time.nome_cartola,
+      slug: d.time.slug,
+      escudo: d.time.url_escudo_png,
+      esquema_id: d.esquema_id ?? d.time.esquema_id,
+      capitao_id: d.capitao_id ?? null,
+      reserva_luxo_id: d.reserva_luxo_id ?? null,
+      pontos: typeof d.pontos === "number" ? d.pontos : 0,
+      pontos_campeonato: typeof d.pontos_campeonato === "number" ? d.pontos_campeonato : null,
+      patrimonio: d.patrimonio ?? null,
+      rodada: data.rodada,
+      atletas,
+    };
+  });
+
+export const getTimeHistorico = createServerFn({ method: "GET" })
+  .inputValidator(z.object({
+    time_id: z.number().int().positive(),
+    rodada_inicio: z.number().int().min(1),
+    rodada_fim: z.number().int().min(1).max(38),
+  }))
+  .handler(async ({ data }) => {
+    const ini = Math.min(data.rodada_inicio, data.rodada_fim);
+    const fim = Math.max(data.rodada_inicio, data.rodada_fim);
+    const rodadas = Array.from({ length: fim - ini + 1 }, (_, i) => ini + i);
+    const results = await Promise.all(
+      rodadas.map(r =>
+        fetchCartola(`/time/id/${data.time_id}/${r}`)
+          .then((d: any) => {
+            if (!d || !d.time) return { rodada: r, ok: false as const };
+            const atletas = (d.atletas ?? []).map((a: any) => ({
+              atleta_id: a.atleta_id,
+              apelido: a.apelido,
+              posicao_id: a.posicao_id,
+              clube_id: a.clube_id,
+              pontos: typeof a.pontos_num === "number" ? a.pontos_num : 0,
+              entrou: !!a.entrou_em_campo,
+            }));
+            return {
+              rodada: r,
+              ok: true as const,
+              pontos: typeof d.pontos === "number" ? d.pontos : 0,
+              esquema_id: d.esquema_id ?? d.time?.esquema_id ?? null,
+              capitao_id: d.capitao_id ?? null,
+              reserva_luxo_id: d.reserva_luxo_id ?? null,
+              atletas,
+            };
+          })
+          .catch(() => ({ rodada: r, ok: false as const }))
+      )
+    );
+    return {
+      time_id: data.time_id,
+      rodadas: results,
+    };
+  });
+
 // ============ PONTUADOS EM LOTE (para painel de jogadores dos times salvos) ============
 
 export const getPontuadosBatch = createServerFn({ method: "POST" })
