@@ -486,5 +486,3 @@ function Metric({ label, value, hint, positive, negative }: { label: string; val
     </div>
   );
 }
-// Suppress unused POSICOES warning (kept for future expansion)
-void POSICOES;
