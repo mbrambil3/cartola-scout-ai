@@ -15,6 +15,7 @@ import { SaveTimeDialog } from "@/components/SaveTimeDialog";
 import { LoadTimesDialog } from "@/components/LoadTimesDialog";
 import { AnaliticosPanel } from "@/components/AnaliticosPanel";
 import { MeusJogadoresPanel } from "@/components/MeusJogadoresPanel";
+import { RivaisPanel } from "@/components/RivaisPanel";
 
 type SlotKey = string; // "{posicao_id}-{idx}"
 type Selecao = Record<SlotKey, number | undefined>; // atleta_id por slot
@@ -505,12 +506,16 @@ export function AnaliseTime() {
         <TabsList className="mb-3">
           <TabsTrigger value="geral">Geral do campeonato</TabsTrigger>
           <TabsTrigger value="meus">Meus jogadores</TabsTrigger>
+          <TabsTrigger value="rivais">Rivais</TabsTrigger>
         </TabsList>
         <TabsContent value="geral">
           <AnaliticosPanel times={times} posStats={posStats} />
         </TabsContent>
         <TabsContent value="meus">
           <MeusJogadoresPanel times={times} atletasMap={atletasMap} />
+        </TabsContent>
+        <TabsContent value="rivais">
+          <RivaisPanel times={times} ultimaRodada={rodada} currentResultado={resultado} />
         </TabsContent>
       </Tabs>
 
