@@ -108,7 +108,7 @@ export function RivaisPanel({ times, ultimaRodada, currentResultado }: {
 
   function removeRival(id: number) {
     persist(rivais.filter(r => r.time_id !== id));
-    setHist(({ [id]: _, ...rest }) => rest);
+    setHist(s => { const n = { ...s }; delete n[id]; return n; });
     if (rivalCompare === id) setRivalCompare(null);
   }
 
