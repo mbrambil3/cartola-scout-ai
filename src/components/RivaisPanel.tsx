@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { searchTimesCartola, getTimeHistorico, getTimeRodada } from "@/lib/cartola.functions";
-import { ESQUEMAS, POSICOES, type TimeEntry } from "@/lib/cartola-types";
+import { ESQUEMAS, type TimeEntry } from "@/lib/cartola-types";
 
 const STORAGE_KEY = "cartola_lab_rivais_v1";
 
